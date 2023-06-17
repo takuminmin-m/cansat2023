@@ -9,6 +9,7 @@ use defmt::*;
 use defmt_rtt as _;
 use embedded_hal::digital::v2::OutputPin;
 use panic_probe as _;
+use fugit::RateExtU32;
 
 // Provide an alias for our BSP so we can switch targets quickly.
 // Uncomment the BSP you included in Cargo.toml, the rest of the code does not need to change.
@@ -17,6 +18,8 @@ use panic_probe as _;
 use seeeduino_xiao_rp2040 as bsp;
 
 use bsp::hal::{
+    i2c::I2C,
+    gpio::Pins,
     clocks::{init_clocks_and_plls, Clock},
     pac,
     sio::Sio,
@@ -55,6 +58,20 @@ fn main() -> ! {
         sio.gpio_bank0,
         &mut pac.RESETS,
     );
+
+    let sda_pin = pins.sda;
+    let scl_pin = pins.scl;
+
+    let mut i2c = I2C::i2c1(
+        pac.I2C1,
+        sda_pin.into_mode(),
+        scl_pin.into_mode(),
+        400.kHz(),
+        &mut pac.RESETS,
+        125_000_000.Hz(),
+    );
+
+    imu::init(&mut i2c);
 
     // This is the correct pin on the Raspberry Pico board. On other boards, even if they have an
     // on-board LED, it might need to be changed.
