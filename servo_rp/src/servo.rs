@@ -16,7 +16,7 @@ where
     <T as PwmPin>::Duty: From<u16>,
 {
     pub fn new(pwm_channel: &'a mut T) -> Servo<'a, T> {
-        let mut servo = Servo{
+        let servo = Servo{
             pwm_channel,
             position: 0,
         };
@@ -30,7 +30,10 @@ where
     }
 
     fn rotate(&mut self) {
-        let d = (self.position + 90) * 150;
+        // min: top_val * 0.025 = 665
+        // max: top_val * 0.116 = 3085
+        // let d = 665 + ((self.position + 90) * 2240) / 90;
+        let d = self.position;
         self.pwm_channel.set_duty((d as u16).into());
     }
 }

@@ -90,22 +90,27 @@ fn main() -> ! {
         scl_pin.into_mode(),
         400.kHz(),
         &mut pac.RESETS,
-        125_000_000.Hz(),
+        clocks.system_clock.freq(),
     );
 
 
     let mut pwm_slices = Slices::new(pac.PWM, &mut pac.RESETS);
-    let mut pwm = &mut pwm_slices.pwm5;
+    let pwm = &mut pwm_slices.pwm5;
     pwm.set_ph_correct();
     pwm.enable();
 
-    let mut channel_a = &mut pwm.channel_a;
-    let channel_pin_b = channel_a.output_to(pins.a0);
+    // set frequency for 50Hz
+    pwm.set_top(20781);
+    pwm.set_div_int(128);
+    pwm.set_div_frac(0);
+
+    let channel_a = &mut pwm.channel_a;
+    channel_a.output_to(pins.a0);
 
 
     let mut imu = imu::Imu::new(&mut i2c);
     uart.write_full_blocking(b"Init done\r\n");
-    let mut servo = servo::Servo::new(&mut channel_a);
+    let mut servo = servo::Servo::new(channel_a);
     servo.set_position(0);
 
 
@@ -120,18 +125,18 @@ fn main() -> ! {
     let mut led_red_pin = pins.led_red.into_push_pull_output();
 
     loop {
-        // uart.write_full_blocking(b"Off\r\n");
+        writeln!(uart, "On!").unwrap();
         led_blue_pin.set_high().unwrap();
         led_green_pin.set_high().unwrap();
         led_red_pin.set_high().unwrap();
-        servo.set_position(-90);
-        delay.delay_ms(500);
-        // uart.write_full_blocking(b"On\r\n");
+        servo.set_position(1300);
+        delay.delay_ms(1000);
+        writeln!(uart, "Off!").unwrap();
         led_blue_pin.set_low().unwrap();
         led_green_pin.set_low().unwrap();
         led_red_pin.set_low().unwrap();
-        servo.set_position(90);
-        delay.delay_ms(500);
+        servo.set_position(1900);
+        delay.delay_ms(1000);
 
         imu.update_all();
         let x_accl = imu.x_accl;
