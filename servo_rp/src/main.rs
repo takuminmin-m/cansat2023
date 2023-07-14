@@ -100,8 +100,8 @@ fn main() -> ! {
     pwm.enable();
 
     // set frequency for 50Hz
-    pwm.set_top(20781);
-    pwm.set_div_int(128);
+    pwm.set_top(19531);
+    pwm.set_div_int(64);
     pwm.set_div_frac(0);
 
     let channel_a = &mut pwm.channel_a;
