@@ -25,15 +25,20 @@ where
     }
 
     pub fn set_position(&mut self, position: i32) {
-        self.position = position;
+        self.position = if position > 90 {
+            90
+        } else if position < -90 {
+            -90
+        } else {
+            position
+        };
         self.rotate();
     }
 
     fn rotate(&mut self) {
-        // min: top_val * 0.025 = 665
-        // max: top_val * 0.116 = 3085
-        // let d = 665 + ((self.position + 90) * 2240) / 90;
-        let d = self.position;
+        // min: 550
+        // max: 2170
+        let d = 660 + (self.position + 90) * 9;
         self.pwm_channel.set_duty((d as u16).into());
     }
 }

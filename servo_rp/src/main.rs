@@ -66,6 +66,13 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
+    let mut led_blue_pin = pins.led_blue.into_push_pull_output();
+    let mut led_green_pin = pins.led_green.into_push_pull_output();
+    let mut led_red_pin = pins.led_red.into_push_pull_output();
+    led_blue_pin.set_high().unwrap();
+    led_green_pin.set_high().unwrap();
+    led_red_pin.set_high().unwrap();
+
     let mut uart = UartPeripheral::new(
         pac.UART0,
         (pins.tx.into_mode(), pins.rx.into_mode()),
@@ -82,6 +89,7 @@ fn main() -> ! {
 
     uart.write_full_blocking(b"Start\r\n");
 
+    uart.write_full_blocking(b"I2C initializing.....");
     let sda_pin = pins.sda;
     let scl_pin = pins.scl;
     let mut i2c = I2C::i2c1(
@@ -92,8 +100,10 @@ fn main() -> ! {
         &mut pac.RESETS,
         clocks.system_clock.freq(),
     );
+    uart.write_full_blocking(b"done!\r\n");
 
 
+    uart.write_full_blocking(b"PWM initializing.....");
     let mut pwm_slices = Slices::new(pac.PWM, &mut pac.RESETS);
     let pwm = &mut pwm_slices.pwm5;
     pwm.set_ph_correct();
@@ -106,50 +116,25 @@ fn main() -> ! {
 
     let channel_a = &mut pwm.channel_a;
     channel_a.output_to(pins.a0);
+    uart.write_full_blocking(b"done!\r\n");
 
+    uart.write_full_blocking(b"IMU device initializing.....");
+    let mut imu = imu::Imu::new(&mut i2c, &mut delay);
+    uart.write_full_blocking(b"done!\r\n");
 
-    let mut imu = imu::Imu::new(&mut i2c);
-    uart.write_full_blocking(b"Init done\r\n");
+    uart.write_full_blocking(b"servo device initializing.....");
     let mut servo = servo::Servo::new(channel_a);
     servo.set_position(0);
+    uart.write_full_blocking(b"done!\r\n");
 
+    uart.write_full_blocking(b"Init done\r\n");
+    led_green_pin.set_low().unwrap();
 
-
-    // This is the correct pin on the Raspberry Pico board. On other boards, even if they have an
-    // on-board LED, it might need to be changed.
-    // Notably, on the Pico W, the LED is not connected to any of the RP2040 GPIOs but to the cyw43 module instead. If you have
-    // a Pico W and want to toggle a LED with a simple GPIO output pin, you can connect an external
-    // LED to one of the GPIO pins, and reference that pin here.
-    let mut led_blue_pin = pins.led_blue.into_push_pull_output();
-    let mut led_green_pin = pins.led_green.into_push_pull_output();
-    let mut led_red_pin = pins.led_red.into_push_pull_output();
-
+    let mut servo_pos = 0.0;
     loop {
-        writeln!(uart, "On!").unwrap();
-        led_blue_pin.set_high().unwrap();
-        led_green_pin.set_high().unwrap();
-        led_red_pin.set_high().unwrap();
-        servo.set_position(1300);
-        delay.delay_ms(1000);
-        writeln!(uart, "Off!").unwrap();
-        led_blue_pin.set_low().unwrap();
-        led_green_pin.set_low().unwrap();
-        led_red_pin.set_low().unwrap();
-        servo.set_position(1900);
-        delay.delay_ms(1000);
-
-        imu.update_all();
-        let x_accl = imu.x_accl;
-        let y_accl = imu.y_accl;
-        let z_accl = imu.z_accl;
-        writeln!(uart, "accl: {x_accl:02}, {y_accl:02}, {z_accl:02}").unwrap();
-        let x_gyro = imu.x_gyro;
-        let y_gyro = imu.y_gyro;
+        imu.update_gyro();
         let z_gyro = imu.z_gyro;
-        writeln!(uart, "gyro: {x_gyro:02}, {y_gyro:02}, {z_gyro:02}").unwrap();
-        let x_mag = imu.x_mag;
-        let y_mag = imu.y_mag;
-        let z_mag = imu.z_mag;
-        writeln!(uart, "mag: {x_mag:02}, {y_mag:02}, {z_mag:02}").unwrap();
+        servo_pos -= z_gyro / 1000.0;
+        servo.set_position(servo_pos as i32);
     }
 }

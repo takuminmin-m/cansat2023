@@ -31,7 +31,7 @@ pub struct Imu<'a> {
 }
 
 impl<'a> Imu<'a> {
-    pub fn new(i2c: &'a mut I2C<I2C1, (Sda, Scl)>) -> Imu<'a> {
+    pub fn new(i2c: &'a mut I2C<I2C1, (Sda, Scl)>, delay: &mut cortex_m::delay::Delay) -> Imu<'a> {
         let imu = Imu{
             i2c,
             x_accl: 0.0,
@@ -49,11 +49,13 @@ impl<'a> Imu<'a> {
         imu.i2c.write(IMU_ADDR_ACCL, &[0x0f, 0x03]).unwrap();
         imu.i2c.write(IMU_ADDR_ACCL, &[0x10, 0x08]).unwrap();
         imu.i2c.write(IMU_ADDR_ACCL, &[0x11, 0x00]).unwrap();
+        delay.delay_ms(500);
 
         // ジャイロセンサーの初期化
         imu.i2c.write(IMU_ADDR_GYRO, &[0x0f, 0x04]).unwrap();
         imu.i2c.write(IMU_ADDR_GYRO, &[0x10, 0x07]).unwrap();
         imu.i2c.write(IMU_ADDR_GYRO, &[0x11, 0x00]).unwrap();
+        delay.delay_ms(500);
 
         // 地磁気センサーの初期化
         imu.i2c.write(IMU_ADDR_MAG, &[0x4b, 0x83]).unwrap();
@@ -62,6 +64,7 @@ impl<'a> Imu<'a> {
         imu.i2c.write(IMU_ADDR_MAG, &[0x4e, 0x84]).unwrap();
         imu.i2c.write(IMU_ADDR_MAG, &[0x51, 0x04]).unwrap();
         imu.i2c.write(IMU_ADDR_MAG, &[0x52, 0x16]).unwrap();
+        delay.delay_ms(500);
 
         info!("IMU init done");
         imu
