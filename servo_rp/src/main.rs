@@ -133,7 +133,7 @@ fn main() -> ! {
     let mut servo_pos = 0.0;
     loop {
         imu.update_gyro();
-        let z_gyro = imu.y_gyro;
+        let z_gyro = imu.x_gyro;
         servo_pos += z_gyro / 1320.0;
         servo.set_position(servo_pos as i32);
     }
